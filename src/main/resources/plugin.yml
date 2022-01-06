@@ -1,0 +1,17 @@
+name: PowerTower
+version: ${project.version}
+description: ${plugin-description}
+api-version: ${spigot-api-version}
+authors: [DPOH-VAR, MYXOMOPX]
+database: false
+main: ru.flinbein.powertower.PowerTowerPlugin
+
+libraries:
+  - org.jetbrains.kotlin:kotlin-stdlib:${kotlin-std-lib-version}
+
+commands:
+  script:
+    description: some settings?
+    aliases: ['/powertower']
+    usage: /powertower
+    permission: powertower.command
