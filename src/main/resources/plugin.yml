@@ -8,10 +8,15 @@ main: ru.flinbein.powertower.PowerTowerPlugin
 
 libraries:
   - org.jetbrains.kotlin:kotlin-stdlib:${kotlin-std-lib-version}
+  - org.jetbrains.kotlin:kotlin-reflect:${kotlin-std-lib-version}
+depend:
+  - PowerNBT
+  - FurnitureLib
+  - Vault
 
 commands:
-  script:
+  powertower:
     description: some settings?
-    aliases: ['/powertower']
+    aliases: ['twr']
     usage: /powertower
     permission: powertower.command

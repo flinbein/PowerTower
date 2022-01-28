@@ -25,7 +25,7 @@
 
 
     <properties>
-        <target-java-version>16</target-java-version>
+        <target-java-version>17</target-java-version>
         <spigot-version>1.17.1-R0.1-SNAPSHOT</spigot-version>
         <spigot-api-version>1.17</spigot-api-version>
         <plugin-description>An smart powers ? ToDo</plugin-description>
@@ -43,6 +43,11 @@
             <id>spigot-repo</id>
             <url>https://hub.spigotmc.org/nexus/content/groups/public/</url>
         </repository>
+
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io/</url>
+        </repository>
     </repositories>
 
 
@@ -54,9 +59,33 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-reflect</artifactId>
+            <version>${kotlin-std-lib-version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>org.spigotmc</groupId>
             <artifactId>spigot-api</artifactId>
             <version>${spigot-version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.flinbein</groupId>
+            <artifactId>PowerNBT</artifactId>
+            <version>v1.1.3.2</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.Ste3et</groupId>
+            <artifactId>FurnitureLib</artifactId>
+            <version>22fb4086de</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.MilkBowl</groupId>
+            <artifactId>VaultAPI</artifactId>
+            <version>1.7.1</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
@@ -72,7 +101,7 @@
         </resources>
 
         <sourceDirectory>src/main/kotlin</sourceDirectory>
-        <testSourceDirectory>src/test/kotlin</testSourceDirectory>
+<!--        <testSourceDirectory>src/test/kotlin</testSourceDirectory>-->
         <plugins>
             <plugin>
                 <groupId>org.jetbrains.kotlin</groupId>

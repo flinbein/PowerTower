@@ -1,16 +1,35 @@
 package ru.flinbein.powertower
 
+import org.bukkit.event.EventHandler
+import org.bukkit.event.Listener
+import org.bukkit.event.world.WorldLoadEvent
+import org.bukkit.event.world.WorldUnloadEvent
 import org.bukkit.plugin.java.JavaPlugin
+import ru.flinbein.powertower.service.PowerTowerService
 
-class PowerTowerPlugin : JavaPlugin {
+class PowerTowerPlugin : JavaPlugin(), Listener {
 
-    constructor() : super() {
-        logger.info("Constructor of plugin"); // not work actually. Logger has nowhere to log at this point
-    }
+    val towerService = PowerTowerService(this)
 
     override fun onEnable() {
-        super.onEnable();
-        logger.info("PWRTWR ENABLED")
+        super.onEnable()
+        server.pluginManager.registerEvents(this, this)
+        server.worlds.forEach (towerService::loadTowers)
     }
+
+    override fun onDisable() {
+        towerService.saveTowers()
+    }
+
+    @EventHandler
+    fun onWorldLoad(event: WorldLoadEvent){
+        towerService.loadTowers(event.world)
+    }
+
+    @EventHandler
+    fun onWorldUnload(event: WorldUnloadEvent){
+        towerService.saveTowers()
+    }
+
 
 }
