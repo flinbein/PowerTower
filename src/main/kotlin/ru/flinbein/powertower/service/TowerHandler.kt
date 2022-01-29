@@ -72,7 +72,7 @@ class TowerHandler<T: Tower>(val service: PowerTowerService, val uid: UUID, val 
         TODO("Not yet implemented")
     }
 
-    override fun taskGroup(task: () -> Unit): TaskManagerControl {
+    override fun taskGroup(): TaskManagerControl {
         TODO("Not yet implemented")
     }
 

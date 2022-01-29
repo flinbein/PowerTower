@@ -8,6 +8,6 @@ interface TaskManager {
     fun onTimer(delay: Long = 0, period: Long, task: (ctrl: TaskControl) -> Unit): TaskControl
     fun onStop(task: () -> Unit): TaskControl
     fun onImmediate(task: () -> Unit): TaskControl
-    fun taskGroup(task: () -> Unit): TaskManagerControl
+    fun taskGroup(): TaskManagerControl
 
 }
