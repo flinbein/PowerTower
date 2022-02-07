@@ -34,23 +34,20 @@ abstract class FurnitureTower(hd: TowerHandler<out FurnitureTower>): Tower(hd) {
 
     abstract fun buildFurniture(): ObjectID
 
-    override fun load(world: World, data: NBTCompound) {
-        super.load(world, data)
+    init {
+        hd.onLoad {
+            var foundFurniture: ObjectID? = null
+            val string = getString("FurnitureSerial")
+            if (string.isNotEmpty()) foundFurniture = furnitureManager.getObjBySerial(string)
+            furniture = foundFurniture ?: buildFurniture()
+        }
 
-        var foundFurniture: ObjectID? = null
-        val string = data.getString("FurnitureSerial")
-        if (string.isNotEmpty()) foundFurniture = furnitureManager.getObjBySerial(string)
-        furniture = foundFurniture ?: buildFurniture()
-    }
+        hd.onSave {
+            this["FurnitureSerial"] = furniture.serial
+        }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        furniture.remove()
-    }
-
-    override fun save(data: NBTCompound) {
-        super.save(data)
-
-        data["FurnitureSerial"] = furniture.serial
+        hd.onDestroy {
+            furniture.remove()
+        }
     }
 }

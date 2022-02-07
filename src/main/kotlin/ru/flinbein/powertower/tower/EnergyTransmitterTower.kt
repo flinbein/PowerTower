@@ -13,7 +13,7 @@ class EnergyTransmitterTower(private val hd: TowerHandler<out Tower>): BlockTowe
     override val energyReceivePoint by lazy { blockCoordinates[1].add(0.5, 0.5, 0.5) }
 
     override val blockCoordinates: List<Location>
-        get() = listOf(location.clone(), location.clone().add(.0,.1,.0))
+        get() = listOf(location.clone(), location.clone().add(.0,1.0,.0))
 
     override fun beforeTransmitAnimation(task: TaskManager): Long {
         val state = blockCoordinates[1].block.state as ShulkerBox
@@ -43,9 +43,10 @@ class EnergyTransmitterTower(private val hd: TowerHandler<out Tower>): BlockTowe
         return 0L
     }
 
-    override fun load(world: World, data: NBTCompound) {
-        super.load(world, data)
-        blockCoordinates[0].block.blockData = Material.REDSTONE_BLOCK.createBlockData()
-        blockCoordinates[1].block.blockData = Material.RED_SHULKER_BOX.createBlockData()
+    init {
+        hd.onLoad {
+            blockCoordinates[0].block.blockData = Material.REDSTONE_BLOCK.createBlockData()
+            blockCoordinates[1].block.blockData = Material.RED_SHULKER_BOX.createBlockData()
+        }
     }
 }

@@ -3,10 +3,10 @@ package ru.flinbein.powertower.service
 import me.dpohvar.powernbt.PowerNBT
 import me.dpohvar.powernbt.api.NBTCompound
 import org.bukkit.Bukkit
+import org.bukkit.Location
 import org.bukkit.World
 import ru.flinbein.powertower.PowerTowerPlugin
 import ru.flinbein.powertower.tower.Tower
-import ru.flinbein.powertower.tower.TowerEvents
 import java.io.File
 import java.util.*
 import kotlin.reflect.KClass
@@ -22,7 +22,7 @@ class PowerTowerService(private val plugin: PowerTowerPlugin) {
     private val hashTowersByUid: HashMap<UUID, TowerHandler.TowerInit<out Tower>> = HashMap()
 
     private fun <T: Tower> putTowerToHash(towerInit: TowerHandler.TowerInit<out T>, tower: T){
-        hashTowersByUid[towerInit.initializer.uid] = towerInit
+        hashTowersByUid[towerInit.handler.uid] = towerInit
         val towerClassesAndInterfaces = ArrayList<KClass<*>>()
         towerClassesAndInterfaces.add(towerInit::class)
         towerClassesAndInterfaces.addAll(tower::class.allSuperclasses)
@@ -34,7 +34,7 @@ class PowerTowerService(private val plugin: PowerTowerPlugin) {
 
     private fun removeTowerFromHash(uid: UUID){
         val towerInit = hashTowersByUid[uid] ?: return
-        val tower = towerInit.initializer.tower
+        val tower = towerInit.handler.tower
         hashTowersByUid.remove(uid)
         val towerClassesAndInterfaces = ArrayList<KClass<*>>()
         towerClassesAndInterfaces.add(towerInit::class)
@@ -46,20 +46,31 @@ class PowerTowerService(private val plugin: PowerTowerPlugin) {
         }
     }
 
-    fun <T: Tower> createTower(type: KClass<T>, world: World, data: NBTCompound): T{
+    fun createTower(type: String, world: World, data: NBTCompound): Tower{
+        return createTower(getTowerClass(type) ?: throw Error("Tower class not found: $type"), world, data)
+    }
+
+    fun createTower(type: String, location: Location, data: NBTCompound): Tower {
+        data["Pos"] = listOf(location.x, location.y, location.z)
+        data["Rotation"] = listOf(location.yaw, location.pitch)
+        return createTower(getTowerClass(type) ?: throw Error("Tower class not found: $type"), location.world ?: throw Error("world must be loaded"), data)
+    }
+
+    fun createTower(type: String, location: Location): Tower {
+        return createTower(type, location, NBTCompound())
+    }
+
+    private fun <T: Tower> createTower(type: KClass<T>, world: World, data: NBTCompound): T{
         return createTower(type, world, UUID.randomUUID(), data)
     }
 
     private fun <T: Tower> createTower(type: KClass<T>, world: World, uid: UUID, data: NBTCompound): T {
         val towerInit = TowerHandler.TowerInit<T>(this, uid, plugin)
         try {
-            val tower = type.constructors.first().call(towerInit.initializer)
+            val tower = type.constructors.first().call(towerInit.handler)
             putTowerToHash(towerInit, tower)
             towerInit.initTower(tower)
-            tower.load(world, data)
-            for (controller in towerInit.controllers.values) {
-                if (controller is TowerEvents) controller.load(world, data)
-            }
+            towerInit.load(world, data)
             return tower
         } catch (error: Throwable) {
             removeTowerFromHash(uid)
@@ -89,7 +100,7 @@ class PowerTowerService(private val plugin: PowerTowerPlugin) {
             val towerTypeName = data.getString("Type")
 
             val towerInit = hashTowersByUid[uid]
-            val existingTower = towerInit?.initializer?.tower
+            val existingTower = towerInit?.handler?.tower
             if (existingTower != null) {
                 val jvmName = existingTower::class.jvmName
                 if (jvmName != towerTypeName) {
@@ -97,10 +108,7 @@ class PowerTowerService(private val plugin: PowerTowerPlugin) {
                     continue
                 }
                 try {
-                    existingTower.load(world, data)
-                    for (controller in towerInit.controllers.values) {
-                        if (controller is TowerEvents) controller.load(world, data)
-                    }
+                    towerInit.load(world, data)
                 } catch (error: Throwable) {
                     plugin.logger.warning("Tower $uid $towerTypeName can not load data from file")
                     plugin.logger.throwing(PowerTowerService::class.jvmName, "loadTowers", error)
@@ -126,16 +134,13 @@ class PowerTowerService(private val plugin: PowerTowerPlugin) {
     fun saveTowers(){
         val towersFolder = File(plugin.dataFolder, "towers")
         for ((uid, towerInit) in hashTowersByUid) {
-            val tower = towerInit.initializer.tower
+            val tower = towerInit.handler.tower
             val world = tower.location.world ?: continue
             val worldFolder = File(towersFolder, world.uid.toString())
             worldFolder.mkdirs()
             val data = NBTCompound()
             try {
-                tower.save(data)
-                for (controller in towerInit.controllers.values) {
-                    if (controller is TowerEvents) controller.save(data)
-                }
+                towerInit.save(data)
             } catch (error: Throwable) {
                 plugin.logger.warning("Tower $uid: can not save to NBT")
                 plugin.logger.throwing(PowerTowerService::class.jvmName, "saveTowers", error)
@@ -156,14 +161,9 @@ class PowerTowerService(private val plugin: PowerTowerPlugin) {
 
     fun destroyTower(uid: UUID){
         val towerInit = hashTowersByUid[uid]
+        val tower = towerInit?.handler?.tower
         removeTowerFromHash(uid)
-        val tower = towerInit?.initializer?.tower
-        tower?.onDestroy()
-        val controllers = towerInit?.controllers?.values
         towerInit?.destroy()
-        if (controllers != null) for (controller in controllers) {
-            if (controller is TowerEvents) controller.onDestroy()
-        }
         if (tower != null) run {
             val world = tower.location.world ?: return@run
             val towersFolder = File(plugin.dataFolder, "towers")
@@ -182,14 +182,14 @@ class PowerTowerService(private val plugin: PowerTowerPlugin) {
         for (plugin in Bukkit.getPluginManager().plugins) {
             try {
                 val kClass = plugin::class.java.classLoader.loadClass(name).kotlin
-                if (!kClass.isSuperclassOf(Tower::class)) continue
+                if (!Tower::class.isSuperclassOf(kClass)) continue
                 return kClass as KClass<out Tower>
             } catch (ignored: Throwable) {}
         }
         return null
     }
 
-    fun getTower(uid: UUID) = hashTowersByUid[uid]?.initializer?.tower
+    fun getTower(uid: UUID) = hashTowersByUid[uid]?.handler?.tower
 
 
 

@@ -14,19 +14,20 @@ interface EnergyHolder {
     val fullPowered: Boolean
             get() = energy >= maxEnergy
 
-    class EnergyHolderController(ignored: TowerHandler<Tower>): EnergyHolder, TowerEvents {
+    class EnergyHolderController(hd: TowerHandler<Tower>): EnergyHolder {
 
         override var maxEnergy: Double = .0
         override var energy: Double = .0
 
-        override fun load(world: World, data: NBTCompound) {
-            if (data.containsKey("Energy")) energy = data.getDouble("Energy")
-            if (data.containsKey("MaxEnergy")) maxEnergy = data.getDouble("MaxEnergy")
-        }
-
-        override fun save(data: NBTCompound) {
-            data["Energy"] = energy
-            data["MaxEnergy"] = maxEnergy
+        init {
+            hd.onLoad {
+                if (containsKey("Energy")) energy = getDouble("Energy")
+                if (containsKey("MaxEnergy")) maxEnergy = getDouble("MaxEnergy")
+            }
+            hd.onSave {
+                this["Energy"] = energy
+                this["MaxEnergy"] = maxEnergy
+            }
         }
     }
 }

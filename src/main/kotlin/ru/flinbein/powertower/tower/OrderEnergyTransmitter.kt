@@ -21,7 +21,7 @@ interface OrderEnergyTransmitter: EnergyTransmitter {
     fun transmitAnimation(transmitted: Double, receiver: EnergyReceiver, task: TaskManager): Long = 0
     fun afterTransmitAnimation(transmitted: Double, receiver: EnergyReceiver?, task: TaskManager): Long = 0
 
-    class Controller(private val hd: TowerHandler<Tower>): OrderEnergyTransmitter, EnergyHolder by hd(), TowerEvents {
+    class Controller(private val hd: TowerHandler<Tower>): OrderEnergyTransmitter, EnergyHolder by hd() {
 
         override var energyTransmitPeriod: Long = 0
             set(value) {
@@ -42,8 +42,8 @@ interface OrderEnergyTransmitter: EnergyTransmitter {
         }
 
         private fun transmitEnergyNext(task: TaskManager){
-            if (energy <= 0) return
-            if (energyTransmitAmount <= 0) return
+            if (towerTransmitter.energy <= 0) return
+            if (towerTransmitter.energyTransmitAmount <= 0) return
             val size = receivers.size
             if (size <= 0) return
 
@@ -70,7 +70,7 @@ interface OrderEnergyTransmitter: EnergyTransmitter {
 
         }
 
-        private lateinit var receivers: ArrayList<UUID>
+        private var receivers: ArrayList<UUID> = ArrayList()
         private var lastEnergyReceiverIndex: Int = 0
 
         override fun addReceiver(tower: Tower) {
@@ -81,32 +81,31 @@ interface OrderEnergyTransmitter: EnergyTransmitter {
             receivers.removeAt(index)
         }
 
-        override fun load(world: World, data: NBTCompound) {
-            super.load(world, data)
-            if (data.containsKey("EnergyReceivers")) {
-                val receiversId = data.getList("EnergyReceivers").map { it as LongArray }
-                receivers = ArrayList( receiversId.map { UUID(it[0], it[1]) } )
-            }
+        init {
+            hd.onLoad {
+                if (containsKey("EnergyReceivers")) {
+                    val receiversId = getList("EnergyReceivers").map { a -> a as LongArray }
+                    receivers = ArrayList( receiversId.map { (most, least) -> UUID(most, least) } )
+                }
 
-            if (data.containsKey("EnergyTransmitPeriod")) {
-                energyTransmitPeriod = data.getLong("EnergyTransmitPeriod")
-            }
-            if (data.containsKey("EnergyTransmitAmount")) {
-                energyTransmitAmount = data.getDouble("EnergyTransmitAmount")
-            }
+                if (containsKey("EnergyTransmitPeriod")) {
+                    energyTransmitPeriod = getLong("EnergyTransmitPeriod")
+                }
+                if (containsKey("EnergyTransmitAmount")) {
+                    energyTransmitAmount = getDouble("EnergyTransmitAmount")
+                }
 
-            if (data.containsKey("LastEnergyReceiverIndex")) {
-                lastEnergyReceiverIndex = data.getInt("LastEnergyReceiverIndex")
+                if (containsKey("LastEnergyReceiverIndex")) {
+                    lastEnergyReceiverIndex = getInt("LastEnergyReceiverIndex")
+                }
             }
-        }
-
-        override fun save(data: NBTCompound) {
-            super.save(data)
-            val receiversId = receivers.map { longArrayOf(it.mostSignificantBits, it.leastSignificantBits) }
-            data["EnergyReceivers"] = receiversId
-            data["EnergyTransmitPeriod"] = energyTransmitPeriod
-            data["LastEnergyReceiverIndex"] = lastEnergyReceiverIndex
-            data["EnergyTransmitAmount"] = energyTransmitAmount
+            hd.onSave {
+                val receiversId = receivers.map { longArrayOf(it.mostSignificantBits, it.leastSignificantBits) }
+                this["EnergyReceivers"] = receiversId
+                this["EnergyTransmitPeriod"] = energyTransmitPeriod
+                this["LastEnergyReceiverIndex"] = lastEnergyReceiverIndex
+                this["EnergyTransmitAmount"] = energyTransmitAmount
+            }
         }
     }
 }
